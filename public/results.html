@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Общий стол — Переговоры</title>
+  <link rel="icon" href="logo.svg" type="image/svg+xml" />
+  <style>
+    :root { --ink:#1c2430; --muted:#5c6b7a; --line:#d5dde6; --orig:#fbfaf7; --trans:#f3f7fb; --accent:#1f4e79; --ok:#2f6d4f; --me:#e8f0e9; --them:#efe8df; --panel:#fff; --accent-2:#c45c26; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; font-family: "Segoe UI", "Noto Sans", "PT Sans", system-ui, sans-serif; color: var(--ink); background: #e8edf3; }
+    body { display: flex; flex-direction: column; }
+    .protocol { flex: 1; }
+    header {
+      background: #2f6d4f; color: #fff; padding: 10px 16px;
+      display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+    header h1 { margin: 0; font-size: 18px; }
+    header small { opacity: .85; display: block; }
+    .live { font-size: 12px; background: rgba(255,255,255,.18); color: #fff; border-radius: 999px; padding: 4px 10px; }
+    .health { font-size: 12px; background: #2f6d4f; color: #fff; border-radius: 999px; padding: 4px 10px; font-weight: 650; }
+    .health.offline { background: #c45c26; }
+    .lang-switch { display: flex; padding: 3px; gap: 2px; background: rgba(255,255,255,.12); border-radius: 10px; }
+    .lang-switch button {
+      border: 0; background: transparent; color: #d7e6f5; padding: 4px 10px; border-radius: 8px; cursor: pointer; font: inherit;
+    }
+    .lang-switch button.on { background: #fff; color: #1f4e79; }
+    .people { display: flex; gap: 6px; flex-wrap: wrap; }
+    .person { background: rgba(255,255,255,.16); border-radius: 999px; padding: 4px 10px; font-size: 12px; }
+    .pane-tabs { display: none; }
+    .protocol { min-height: 0; display: flex; flex-direction: column; background: #eef2f4; }
+    .cols-head {
+      display: grid; grid-template-columns: 1fr 1fr; padding: 10px 16px 8px;
+      font-weight: 700; background: #fff; border-bottom: 1px solid var(--line);
+    }
+    .cols-head span:last-child { text-align: right; }
+    .protocol-body { overflow: auto; padding: 16px 12px 20px; flex: 1; }
+    .turn { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; align-items: stretch; }
+    .card {
+      background: #fff; border: 1px solid var(--line); border-radius: 14px;
+      padding: 12px 14px; height: 100%; box-shadow: 0 8px 20px rgba(28,36,48,.06);
+      white-space: pre-wrap; word-break: break-word;
+    }
+    .card.them { background: #e4ecf7; }
+    .card.me { background: #e4f0e8; }
+    .meta { font-size: 11px; color: var(--muted); margin-bottom: 6px; display: flex; justify-content: space-between; }
+    .empty { text-align: center; color: var(--muted); margin-top: 16vh; padding: 0 24px; line-height: 1.55; }
+    .lang-tag { display: none; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .toast {
+      position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+      background: var(--ok); color: #fff; padding: 10px 18px; border-radius: 999px; font-weight: 650; z-index: 30;
+    }
+    .toast.hidden { display: none; }
+    .dock {
+      background: var(--panel); border-top: 1px solid var(--line); padding: 10px 14px 14px;
+      display: grid; gap: 8px;
+    }
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .seg { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+    .seg button { border: 0; background: transparent; padding: 8px 14px; color: var(--muted); cursor: pointer; font: inherit; }
+    .seg button.on { background: var(--accent); color: #fff; }
+    .dir-hint { color: var(--muted); font-size: 12px; font-weight: 650; }
+    textarea {
+      width: 100%; min-height: 72px; border: 1px solid var(--line); border-radius: 12px;
+      padding: 12px 14px; font: inherit; font-size: 16px; resize: none; outline: none;
+    }
+    textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(31,78,121,.15); }
+    .send-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .busy { color: var(--accent); font-size: 12px; }
+    .btn {
+      border: 0; background: var(--accent-2); color: #fff; border-radius: 10px;
+      padding: 10px 18px; font: inherit; font-weight: 700; cursor: pointer; min-width: 132px;
+    }
+    .kbd { color: var(--muted); font-size: 12px; }
+    @media (max-width: 720px) {
+      .pane-tabs { display: flex; gap: 6px; padding: 8px 12px; background: #fff; border-bottom: 1px solid var(--line); }
+      .pane-tabs button {
+        flex: 1; border: 1px solid var(--line); background: #fff; border-radius: 10px;
+        padding: 8px; font: inherit; font-weight: 650; color: var(--muted); cursor: pointer;
+      }
+      .pane-tabs button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+      body { display: flex; flex-direction: column; }
+      body.view-both .turn { grid-template-columns: 1fr; gap: 6px; }
+      body.view-both .lang-tag { display: block; }
+      body.view-left .cell.right, body.view-right .cell.left { display: none; }
+      body.view-left .turn, body.view-right .turn { grid-template-columns: 1fr; }
+      .cols-head { display: none; }
+      .kbd { display: none; }
+    }
+  </style>
+</head>
+<body class="view-both">
+  <header>
+    <div>
+      <h1 id="pubTitle">Общий стол</h1>
+      <small id="pubSub">Русский слева · українська справа · можно ответить</small>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div class="people" id="people"></div>
+      <span class="health" id="health">Всем прекрасно · Усім добре</span>
+      <div class="lang-switch" id="uiSwitch" title="Язык интерфейса">
+        <button data-lang="ru" type="button" class="on">RU</button>
+        <button data-lang="uk" type="button">UK</button>
+      </div>
+      <span class="live" id="live">● LIVE</span>
+    </div>
+  </header>
+  <div class="pane-tabs" id="paneTabs">
+    <button type="button" data-view="both" class="on" id="tabBoth">Оба языка</button>
+    <button type="button" data-view="left" id="tabOrig">Русский</button>
+    <button type="button" data-view="right" id="tabTrans">Українська</button>
+  </div>
+  <section class="protocol">
+    <div class="cols-head">
+      <span id="origHead">Русский</span>
+      <span id="transHead">Українська</span>
+    </div>
+    <div class="protocol-body" id="protocol"></div>
+  </section>
+  <div class="toast hidden" id="toast"></div>
+  <footer class="dock">
+    <div class="row">
+      <div class="seg" id="speakerSeg">
+        <button type="button" data-sp="me" id="spMe">Мы</button>
+        <button type="button" data-sp="them" class="on" id="spThem">Собеседник</button>
+      </div>
+      <span class="dir-hint" id="dirHint"></span>
+    </div>
+    <textarea id="draft" rows="2" enterkeyhint="send" autocomplete="off"></textarea>
+    <div class="send-row">
+      <span class="kbd" id="shortcut"></span>
+      <span class="busy" id="busy"></span>
+      <button class="btn" id="btnSend" type="button"></button>
+    </div>
+  </footer>
+  <script src="i18n.js"></script>
+  <script src="google.js"></script>
+  <script>
+    const room = new URLSearchParams(location.search).get("room") || "main";
+    const protocol = document.getElementById("protocol");
+    let ui = localStorage.getItem("peregovory_ui") === "uk" ? "uk" : "ru";
+    const NATIVE = { ru: "Русский", uk: "Українська", en: "English" };
+    const ORDER = ["ru", "uk", "en"];
+    let speaker = "them";
+    let ses = { sourceLang: "ru", targetLang: "uk", messages: [] };
+    let people = [];
+    let last = "";
+    let busy = false;
+
+    function wsId() {
+      let id = localStorage.getItem("peregovory_ws");
+      if (!id) {
+        id = "ws_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+        localStorage.setItem("peregovory_ws", id);
+      }
+      return id;
+    }
+
+    function t(key) {
+      const pack = (window.I18N && (I18N[ui] || I18N.ru)) || {};
+      return key.split(".").reduce((a, k) => (a ? a[k] : ""), pack) || key;
+    }
+
+    function pair() {
+      const src = ses.sourceLang || "ru";
+      const tgt = ses.targetLang || "uk";
+      if (speaker === "them") return { sourceLang: tgt, targetLang: src };
+      return { sourceLang: src, targetLang: tgt };
+    }
+
+    function detectLang(text) {
+      const s = String(text || "");
+      const uk = (s.match(/[іІїЇєЄґҐ]/g) || []).length;
+      const ru = (s.match(/[ыЫэЭъЪёЁ]/g) || []).length;
+      if (uk > ru) return "uk";
+      if (ru > uk) return "ru";
+      return null;
+    }
+
+    function pairForText(text) {
+      const p = pair();
+      const d = detectLang(text);
+      if (d && d === p.targetLang && d !== p.sourceLang) return { sourceLang: p.targetLang, targetLang: p.sourceLang };
+      return p;
+    }
+    function columnLangs() {
+      const src = ses.sourceLang || "ru";
+      const tgt = ses.targetLang || "uk";
+      return [src, tgt].sort((a, b) => (ORDER.indexOf(a) < 0 ? 9 : ORDER.indexOf(a)) - (ORDER.indexOf(b) < 0 ? 9 : ORDER.indexOf(b)));
+    }
+    function textForLang(m, lang) {
+      if ((m.sourceLang || "") === lang) return m.original || "";
+      if ((m.targetLang || "") === lang) return m.translated || "";
+      const [left, right] = columnLangs();
+      if (lang === left) return m.original || "";
+      if (lang === right) return m.translated || "";
+      return "";
+    }
+    function showToast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.classList.remove("hidden");
+      clearTimeout(showToast.t);
+      showToast.t = setTimeout(() => el.classList.add("hidden"), 2200);
+    }
+
+    function applyChrome() {
+      document.documentElement.lang = ui;
+      document.getElementById("pubTitle").textContent = t("publicTitle");
+      document.getElementById("pubSub").textContent = t("publicSub");
+      const cols = columnLangs();
+      document.getElementById("origHead").textContent = NATIVE[cols[0]] || cols[0];
+      document.getElementById("transHead").textContent = NATIVE[cols[1]] || cols[1];
+      document.getElementById("tabOrig").textContent = NATIVE[cols[0]] || cols[0];
+      document.getElementById("tabTrans").textContent = NATIVE[cols[1]] || cols[1];
+      document.getElementById("tabBoth").textContent = t("colBoth");
+      document.getElementById("spMe").textContent = t("me");
+      document.getElementById("spThem").textContent = t("them");
+      document.getElementById("draft").placeholder = t("replyPh");
+      document.getElementById("btnSend").textContent = t("send");
+      document.getElementById("shortcut").textContent = t("enterSend");
+      document.title = t("publicTitle") + " — " + t("appName");
+      document.getElementById("uiSwitch").title = t("uiLang");
+      for (const b of document.querySelectorAll("#uiSwitch button")) {
+        b.classList.toggle("on", b.dataset.lang === ui);
+      }
+      for (const b of document.querySelectorAll("#speakerSeg button")) {
+        b.classList.toggle("on", b.dataset.sp === speaker);
+      }
+      const p = pair();
+      const who = speaker === "them" ? t("dirHintThem") : t("dirHintMe");
+      document.getElementById("dirHint").textContent = who + ": " + (p.sourceLang || "").toUpperCase() + " → " + (p.targetLang || "").toUpperCase();
+    }
+
+    function setUi(lang) {
+      ui = lang === "uk" ? "uk" : "ru";
+      localStorage.setItem("peregovory_ui", ui);
+      applyChrome();
+      last = "";
+      tick();
+    }
+
+    document.getElementById("uiSwitch").addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-lang]");
+      if (b) setUi(b.dataset.lang);
+    });
+    document.getElementById("speakerSeg").addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-sp]");
+      if (!b) return;
+      speaker = b.dataset.sp;
+      applyChrome();
+      beat();
+    });
+    document.getElementById("paneTabs").addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-view]");
+      if (!b) return;
+      document.body.classList.remove("view-orig", "view-trans", "view-both", "view-left", "view-right");
+      document.body.classList.add("view-" + b.dataset.view);
+      for (const x of document.querySelectorAll("#paneTabs button")) x.classList.toggle("on", x === b);
+    });
+
+    function esc(s) {
+      return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    }
+    function when(iso) {
+      if (!iso) return "";
+      const d = new Date(iso);
+      return d.toLocaleString(ui === "uk" ? "uk-UA" : "ru-RU", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
+    }
+    function who(sp) {
+      return sp === "them" ? t("them") : t("me");
+    }
+    function renderTurns(msgs) {
+      if (!msgs.length) return '<div class="empty"><b>' + esc(t("healthGreat")) + "</b>" + esc(t("emptyPublic")) + "</div>";
+      const [left, right] = columnLangs();
+      return msgs.map((m) => {
+        const cell = (lang) => `<div class="cell ${lang === left ? "left" : "right"}">
+          <div class="lang-tag">${esc(NATIVE[lang] || lang)}</div>
+          <article class="card ${m.speaker || "me"}">
+            <div class="meta"><span>${esc(who(m.speaker))}</span><span>${esc(when(m.createdAt))}</span></div>
+            <div>${esc(textForLang(m, lang))}</div>
+          </article>
+        </div>`;
+        return `<div class="turn">${cell(left)}${cell(right)}</div>`;
+      }).join("");
+    }
+
+    function renderPeople() {
+      const box = document.getElementById("people");
+      if (!people.length) {
+        box.innerHTML = '<span class="person">' + esc(t("peopleAlone")) + "</span>";
+        return;
+      }
+      const n = people.length;
+      const views = people.filter((p) => p.speaker === "view").length;
+      const parts = [];
+      if (n >= 2) parts.push('<span class="person">' + esc(t("notAlone")) + " · " + n + "</span>");
+      else parts.push('<span class="person">' + esc(t("peopleAlone")) + "</span>");
+      if (views) parts.push('<span class="person">' + esc(t("viewer")) + (views > 1 ? " · " + views : "") + "</span>");
+      box.innerHTML = parts.join("");
+    }
+
+    function renderHealth(offline) {
+      const el = document.getElementById("health");
+      if (offline) {
+        el.textContent = t("healthOffline");
+        el.classList.add("offline");
+        return;
+      }
+      el.classList.remove("offline");
+      el.textContent = people.length >= 2 ? t("healthGreat") : t("healthGreat");
+    }
+
+    async function api(path, opts = {}) {
+      const u = new URL(path, location.origin);
+      u.searchParams.set("ws", wsId());
+      const res = await fetch(u.pathname + u.search, {
+        headers: { "Content-Type": "application/json" },
+        ...opts,
+        body: opts.body ? JSON.stringify(opts.body) : undefined,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || res.statusText);
+      return data;
+    }
+
+    async function beat() {
+      try {
+        const data = await api("/api/rooms/" + encodeURIComponent(room) + "/presence", {
+          method: "POST",
+          body: { speaker, uiLang: ui },
+        });
+        people = data.people || [];
+        renderPeople();
+        renderHealth(false);
+      } catch {
+        renderHealth(true);
+      }
+    }
+
+    async function tick() {
+      try {
+        const d = await api("/api/rooms/" + encodeURIComponent(room));
+        ses = d.session || ses;
+        if (d.people) people = d.people;
+        const key = ui + JSON.stringify(ses.messages || []) + JSON.stringify(people.map((p) => p.id));
+        if (key === last) {
+          renderHealth(false);
+          return;
+        }
+        last = key;
+        const msgs = ses.messages || [];
+        const stick = protocol.scrollHeight - protocol.scrollTop - protocol.clientHeight < 96;
+        protocol.innerHTML = renderTurns(msgs);
+        if (stick || protocol.dataset.stick !== "0") protocol.scrollTop = protocol.scrollHeight;
+        document.getElementById("live").textContent = t("liveOn") + " · " + msgs.length;
+        renderPeople();
+        renderHealth(false);
+        applyChrome();
+      } catch (e) {
+        document.getElementById("live").textContent = "● " + t("offline");
+        renderHealth(true);
+      }
+    }
+
+    async function send() {
+      const ta = document.getElementById("draft");
+      const text = ta.value.trim();
+      if (!text || busy) return;
+      busy = true;
+      document.getElementById("busy").textContent = t("translating");
+      try {
+        const p = pairForText(text);
+        let translated = text;
+        let engine = "google";
+        if (window.GoogleTX) {
+          try {
+            const g = await GoogleTX.translate(text, p.sourceLang, p.targetLang);
+            if (g && g.translated) {
+              translated = g.translated;
+              engine = g.engine || "google";
+            }
+          } catch {
+            /* server fallback */
+          }
+        }
+        await api("/api/rooms/" + encodeURIComponent(room) + "/messages", {
+          method: "POST",
+          body: {
+            original: text,
+            translated,
+            engine,
+            speaker,
+            sourceLang: p.sourceLang,
+            targetLang: p.targetLang,
+          },
+        });
+        ta.value = "";
+        last = "";
+        protocol.dataset.stick = "1";
+        showToast(t("heard"));
+        await tick();
+      } catch (err) {
+        document.getElementById("busy").textContent = err.message;
+      }
+      busy = false;
+      if (document.getElementById("busy").textContent === t("translating")) {
+        document.getElementById("busy").textContent = "";
+      }
+      ta.focus();
+    }
+
+    document.getElementById("btnSend").addEventListener("click", send);
+    document.getElementById("draft").addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+        e.preventDefault();
+        send();
+      }
+    });
+
+    protocol.addEventListener("scroll", () => {
+      protocol.dataset.stick = (protocol.scrollHeight - protocol.scrollTop - protocol.clientHeight < 96) ? "1" : "0";
+    });
+    applyChrome();
+    tick();
+    beat();
+    setInterval(tick, 1200);
+    setInterval(beat, 5000);
+  </script>
+</body>
+</html>

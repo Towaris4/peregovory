@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Смотреть стол — Переговоры</title>
+  <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+  <style>
+    :root { --ink:#1c2430; --muted:#5c6b7a; --line:#d5dde6; --accent:#1f4e79; --ok:#2f6d4f; --panel:#fff; --bg:#e8edf3; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; font-family: "Segoe UI", "Noto Sans", "PT Sans", system-ui, sans-serif; color: var(--ink); background: var(--bg); }
+    body { display: flex; flex-direction: column; }
+    header {
+      background: #2f6d4f; color: #fff; padding: 10px 16px;
+      display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+    header h1 { margin: 0; font-size: 18px; }
+    header small { opacity: .88; display: block; font-weight: 400; }
+    .badge { font-size: 12px; background: rgba(255,255,255,.18); color: #fff; border-radius: 999px; padding: 4px 10px; font-weight: 650; }
+    .badge.off { background: #c45c26; }
+    .lang-switch { display: flex; padding: 3px; gap: 2px; background: rgba(255,255,255,.12); border-radius: 10px; }
+    .lang-switch button { border: 0; background: transparent; color: #d7e6f5; padding: 4px 10px; border-radius: 8px; cursor: pointer; font: inherit; }
+    .lang-switch button.on { background: #fff; color: #1f4e79; }
+    .people { display: flex; gap: 6px; flex-wrap: wrap; }
+    .person { background: rgba(255,255,255,.16); border-radius: 999px; padding: 4px 10px; font-size: 12px; }
+    .pane-tabs { display: none; }
+    .protocol { min-height: 0; flex: 1; display: flex; flex-direction: column; }
+    .cols-head {
+      display: grid; grid-template-columns: 1fr 1fr; padding: 10px 16px 8px;
+      font-weight: 700; background: #fff; border-bottom: 1px solid var(--line);
+    }
+    .cols-head span:last-child { text-align: right; }
+    .protocol-body { overflow: auto; padding: 16px 12px 20px; flex: 1; }
+    .turn { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; align-items: stretch; }
+    .card {
+      background: #fff; border: 1px solid var(--line); border-radius: 14px;
+      padding: 12px 14px; height: 100%; box-shadow: 0 8px 20px rgba(28,36,48,.06);
+      white-space: pre-wrap; word-break: break-word;
+    }
+    .card.them { background: #e4ecf7; }
+    .card.me { background: #e4f0e8; }
+    .meta { font-size: 11px; color: var(--muted); margin-bottom: 6px; display: flex; justify-content: space-between; }
+    .empty { text-align: center; color: var(--muted); margin-top: 12vh; padding: 0 24px; line-height: 1.55; }
+    .empty b { display: block; color: var(--ink); margin-bottom: 8px; font-size: 1.08em; }
+    .lang-tag { display: none; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .join {
+      flex: 1; display: grid; place-items: center; padding: 24px 16px;
+    }
+    .join-card {
+      width: min(440px, 100%); background: #fff; border: 1px solid var(--line);
+      border-radius: 18px; padding: 28px 24px; box-shadow: 0 12px 32px rgba(28,36,48,.08);
+    }
+    .join-card h2 { margin: 0 0 8px; font-size: 22px; }
+    .join-card p { color: var(--muted); margin: 0 0 18px; line-height: 1.5; }
+    .join-card input {
+      width: 100%; font: inherit; font-size: 28px; font-weight: 800; letter-spacing: .28em;
+      text-align: center; text-transform: uppercase; border: 1px solid var(--line);
+      border-radius: 12px; padding: 14px 12px; outline: none;
+    }
+    .join-card input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(31,78,121,.15); }
+    .join-card .err { color: #c45c26; font-size: 13px; min-height: 1.3em; margin: 8px 0 12px; }
+    .join-card button {
+      width: 100%; border: 0; background: var(--ok); color: #fff; font: inherit; font-weight: 700;
+      border-radius: 12px; padding: 12px; cursor: pointer;
+    }
+    .join-card button.ghost {
+      background: transparent; color: var(--accent); margin-top: 8px; font-weight: 650;
+    }
+    .foot {
+      background: var(--panel); border-top: 1px solid var(--line);
+      padding: 8px 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
+      color: var(--muted); font-size: 12px;
+    }
+    .foot a { color: var(--accent); font-weight: 650; text-decoration: none; }
+    .code-chip {
+      font-weight: 800; letter-spacing: .18em; background: rgba(255,255,255,.18);
+      border-radius: 8px; padding: 4px 10px; font-size: 13px;
+    }
+    body.watching .join { display: none; }
+    body.joining .protocol, body.joining .foot, body.joining .pane-tabs { display: none; }
+    @media (max-width: 720px) {
+      .pane-tabs { display: flex; gap: 6px; padding: 8px 12px; background: #fff; border-bottom: 1px solid var(--line); }
+      .pane-tabs button {
+        flex: 1; border: 1px solid var(--line); background: #fff; border-radius: 10px;
+        padding: 8px; font: inherit; font-weight: 650; color: var(--muted); cursor: pointer;
+      }
+      .pane-tabs button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+      body.view-both .turn { grid-template-columns: 1fr; gap: 6px; }
+      body.view-both .lang-tag { display: block; }
+      body.view-left .cell.right, body.view-right .cell.left { display: none; }
+      body.view-left .turn, body.view-right .turn { grid-template-columns: 1fr; }
+      .cols-head { display: none; }
+    }
+  </style>
+</head>
+<body class="view-both joining">
+  <header>
+    <div>
+      <h1 id="pubTitle">Смотреть стол</h1>
+      <small id="pubSub">Живой протокол · писать не нужно</small>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span class="code-chip" id="codeChip" hidden></span>
+      <div class="people" id="people"></div>
+      <span class="badge" id="live">● LIVE</span>
+      <div class="lang-switch" id="uiSwitch">
+        <button data-lang="ru" type="button" class="on">RU</button>
+        <button data-lang="uk" type="button">UK</button>
+      </div>
+    </div>
+  </header>
+  <div class="join" id="join">
+    <form class="join-card" id="joinForm">
+      <h2 id="joinTitle">Подключиться к столу</h2>
+      <p id="joinHint">Код из 4 символов — на экране у переводчика. Вход не нужен.</p>
+      <input id="codeInput" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text" />
+      <div class="err" id="joinErr"></div>
+      <button type="submit" id="btnJoin">Смотреть</button>
+      <button type="button" class="ghost" id="btnMain">Открыть основной стол</button>
+    </form>
+  </div>
+  <div class="pane-tabs" id="paneTabs">
+    <button type="button" data-view="both" class="on" id="tabBoth">Оба языка</button>
+    <button type="button" data-view="left" id="tabOrig">Русский</button>
+    <button type="button" data-view="right" id="tabTrans">Українська</button>
+  </div>
+  <section class="protocol">
+    <div class="cols-head">
+      <span id="origHead">Русский</span>
+      <span id="transHead">Українська</span>
+    </div>
+    <div class="protocol-body" id="protocol"></div>
+  </section>
+  <footer class="foot" id="foot">
+    <span id="footHint">Только просмотр. Реплики появляются сами.</span>
+    <a id="replyLink" href="#"></a>
+  </footer>
+  <script src="/i18n.js"></script>
+  <script>
+    const NATIVE = { ru: "Русский", uk: "Українська", en: "English" };
+    const ORDER = ["ru", "uk", "en"];
+    let ui = localStorage.getItem("peregovory_ui") === "uk" ? "uk" : "ru";
+    let ses = { sourceLang: "ru", targetLang: "uk", messages: [] };
+    let people = [];
+    let last = "";
+    let roomId = "";
+    let watchCode = "";
+
+    function t(key) {
+      const pack = (window.I18N && (I18N[ui] || I18N.ru)) || {};
+      return key.split(".").reduce((a, k) => (a ? a[k] : ""), pack) || key;
+    }
+    function esc(s) {
+      return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    }
+    function wsId() {
+      let id = localStorage.getItem("peregovory_watch_ws");
+      if (!id) {
+        id = "vw_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+        localStorage.setItem("peregovory_watch_ws", id);
+      }
+      return id;
+    }
+    function requested() {
+      const params = new URLSearchParams(location.search);
+      const path = (location.pathname.match(/\/watch\/([A-Za-z0-9_-]+)$/i) || [])[1] || "";
+      const file = path.toLowerCase() === "watch.html" ? "" : path;
+      return {
+        room: params.get("room") || "",
+        code: (params.get("c") || params.get("code") || file || "").toUpperCase(),
+      };
+    }
+    function columnLangs() {
+      const src = ses.sourceLang || "ru";
+      const tgt = ses.targetLang || "uk";
+      return [src, tgt].sort((a, b) => (ORDER.indexOf(a) < 0 ? 9 : ORDER.indexOf(a)) - (ORDER.indexOf(b) < 0 ? 9 : ORDER.indexOf(b)));
+    }
+    function textForLang(m, lang) {
+      if ((m.sourceLang || "") === lang) return m.original || "";
+      if ((m.targetLang || "") === lang) return m.translated || "";
+      const [left, right] = columnLangs();
+      if (lang === left) return m.original || "";
+      if (lang === right) return m.translated || "";
+      return "";
+    }
+    function when(iso) {
+      if (!iso) return "";
+      const d = new Date(iso);
+      return d.toLocaleString(ui === "uk" ? "uk-UA" : "ru-RU", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
+    }
+    function who(sp) {
+      return sp === "them" ? t("them") : t("me");
+    }
+    async function api(path, opts = {}) {
+      const u = new URL(path, location.origin);
+      u.searchParams.set("ws", wsId());
+      const res = await fetch(u.pathname + u.search, {
+        headers: { "Content-Type": "application/json" },
+        ...opts,
+        body: opts.body ? JSON.stringify(opts.body) : undefined,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || res.statusText);
+      return data;
+    }
+    function applyChrome() {
+      document.documentElement.lang = ui;
+      document.getElementById("pubTitle").textContent = t("watchTitle");
+      document.getElementById("pubSub").textContent = t("watchSub");
+      document.getElementById("joinTitle").textContent = t("watchJoin");
+      document.getElementById("joinHint").textContent = t("watchJoinHint");
+      document.getElementById("codeInput").placeholder = t("watchCodePh");
+      document.getElementById("btnJoin").textContent = t("watchOpen");
+      document.getElementById("btnMain").textContent = t("watchMain");
+      document.getElementById("footHint").textContent = t("watchLive");
+      document.getElementById("replyLink").textContent = t("watchWantReply");
+      const cols = columnLangs();
+      document.getElementById("origHead").textContent = NATIVE[cols[0]] || cols[0];
+      document.getElementById("transHead").textContent = NATIVE[cols[1]] || cols[1];
+      document.getElementById("tabOrig").textContent = NATIVE[cols[0]] || cols[0];
+      document.getElementById("tabTrans").textContent = NATIVE[cols[1]] || cols[1];
+      document.getElementById("tabBoth").textContent = t("colBoth");
+      document.title = t("watchTitle") + " — " + t("appName");
+      document.getElementById("uiSwitch").title = t("uiLang");
+      for (const b of document.querySelectorAll("#uiSwitch button")) {
+        b.classList.toggle("on", b.dataset.lang === ui);
+      }
+      const chip = document.getElementById("codeChip");
+      if (watchCode) {
+        chip.hidden = false;
+        chip.textContent = watchCode;
+        chip.title = t("watchCode");
+      } else {
+        chip.hidden = true;
+      }
+      const reply = document.getElementById("replyLink");
+      reply.href = roomId ? "/results.html?room=" + encodeURIComponent(roomId) : "/results.html";
+    }
+    function renderTurns(msgs) {
+      if (!msgs.length) return '<div class="empty"><b>' + esc(t("watchTitle")) + "</b>" + esc(t("watchEmpty")) + "</div>";
+      const [left, right] = columnLangs();
+      return msgs.map((m) => {
+        const cell = (lang) => `<div class="cell ${lang === left ? "left" : "right"}">
+          <div class="lang-tag">${esc(NATIVE[lang] || lang)}</div>
+          <article class="card ${m.speaker || "me"}">
+            <div class="meta"><span>${esc(who(m.speaker))}</span><span>${esc(when(m.createdAt))}</span></div>
+            <div>${esc(textForLang(m, lang))}</div>
+          </article>
+        </div>`;
+        return `<div class="turn">${cell(left)}${cell(right)}</div>`;
+      }).join("");
+    }
+    function renderPeople() {
+      const box = document.getElementById("people");
+      const n = people.length;
+      const views = people.filter((p) => p.speaker === "view").length;
+      if (!n) {
+        box.innerHTML = "";
+        return;
+      }
+      const parts = [];
+      if (n >= 2) parts.push('<span class="person">' + esc(t("notAlone")) + "</span>");
+      if (views) parts.push('<span class="person">' + esc(t("viewer")) + (views > 1 ? " · " + views : "") + "</span>");
+      box.innerHTML = parts.join("");
+    }
+    function showWatching() {
+      document.body.classList.remove("joining");
+      document.body.classList.add("watching");
+    }
+    function showJoin(err) {
+      document.body.classList.add("joining");
+      document.body.classList.remove("watching");
+      document.getElementById("joinErr").textContent = err || "";
+      applyChrome();
+      const inp = document.getElementById("codeInput");
+      inp.focus();
+      inp.select();
+    }
+    async function beat() {
+      if (!roomId) return;
+      try {
+        await api("/api/rooms/" + encodeURIComponent(roomId) + "/presence", {
+          method: "POST",
+          body: { speaker: "view", uiLang: ui },
+        });
+      } catch {
+        /* keep watching */
+      }
+    }
+    async function tick() {
+      if (!roomId) return;
+      const protocol = document.getElementById("protocol");
+      try {
+        const d = await api("/api/rooms/" + encodeURIComponent(roomId));
+        ses = d.session || ses;
+        if (d.people) people = d.people;
+        if (d.watchCode) watchCode = d.watchCode;
+        const key = ui + JSON.stringify(ses.messages || []) + JSON.stringify(people.map((p) => p.id));
+        if (key === last) return;
+        last = key;
+        const msgs = ses.messages || [];
+        const stick = protocol.scrollHeight - protocol.scrollTop - protocol.clientHeight < 96;
+        protocol.innerHTML = renderTurns(msgs);
+        if (stick || protocol.dataset.stick !== "0") protocol.scrollTop = protocol.scrollHeight;
+        document.getElementById("live").textContent = t("liveOn") + " · " + msgs.length;
+        document.getElementById("live").classList.remove("off");
+        renderPeople();
+        applyChrome();
+      } catch {
+        document.getElementById("live").textContent = "● " + t("offline");
+        document.getElementById("live").classList.add("off");
+      }
+    }
+    async function connect(opts) {
+      const errBox = document.getElementById("joinErr");
+      errBox.textContent = "";
+      try {
+        const q = new URLSearchParams();
+        if (opts.room) q.set("room", opts.room);
+        if (opts.code) q.set("code", opts.code);
+        const d = await api("/api/watch?" + q.toString());
+        ses = d.session || ses;
+        roomId = ses.id;
+        watchCode = d.watchCode || ses.watchCode || opts.code || "";
+        people = d.people || [];
+        const next = watchCode
+          ? "/watch/" + encodeURIComponent(watchCode)
+          : "/watch.html?room=" + encodeURIComponent(roomId);
+        if (location.pathname + location.search !== next) history.replaceState({}, "", next);
+        showWatching();
+        last = "";
+        applyChrome();
+        await tick();
+        await beat();
+      } catch (e) {
+        showJoin(t("watchNeedCode"));
+        throw e;
+      }
+    }
+    document.getElementById("uiSwitch").addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-lang]");
+      if (!b) return;
+      ui = b.dataset.lang === "uk" ? "uk" : "ru";
+      localStorage.setItem("peregovory_ui", ui);
+      last = "";
+      applyChrome();
+      if (roomId) tick();
+    });
+    document.getElementById("paneTabs").addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-view]");
+      if (!b) return;
+      document.body.classList.remove("view-orig", "view-trans", "view-both", "view-left", "view-right");
+      document.body.classList.add("view-" + b.dataset.view);
+      for (const x of document.querySelectorAll("#paneTabs button")) x.classList.toggle("on", x === b);
+    });
+    document.getElementById("protocol").addEventListener("scroll", () => {
+      const protocol = document.getElementById("protocol");
+      protocol.dataset.stick = (protocol.scrollHeight - protocol.scrollTop - protocol.clientHeight < 96) ? "1" : "0";
+    });
+    document.getElementById("joinForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const code = document.getElementById("codeInput").value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+      if (!code) return;
+      connect({ code }).catch(() => {});
+    });
+    document.getElementById("codeInput").addEventListener("input", (e) => {
+      const v = e.target.value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 4);
+      e.target.value = v;
+      if (v.length === 4) connect({ code: v }).catch(() => {});
+    });
+    document.getElementById("btnMain").addEventListener("click", () => {
+      connect({ room: "main" }).catch(() => {});
+    });
+
+    applyChrome();
+    const req = requested();
+    if (req.room || req.code) {
+      connect({ room: req.room, code: req.code }).catch(() => {});
+    } else {
+      showJoin();
+    }
+    setInterval(tick, 1200);
+    setInterval(beat, 5000);
+  </script>
+</body>
+</html>

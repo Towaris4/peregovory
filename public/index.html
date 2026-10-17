@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Переговоры</title>
+  <link rel="icon" href="logo.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-theme="paper" style="--font-scale: 1">
+  <div class="side-backdrop" id="sideBackdrop"></div>
+  <div class="app" id="app">
+    <header class="top">
+      <button class="btn side-toggle on" id="btnSide" type="button">Сессии</button>
+      <div class="brand">
+        <img src="logo.svg" alt="" />
+        <div>
+          <h1 id="appName">Переговоры</h1>
+          <small id="appSub">Оригинал · перевод · точный смысл</small>
+        </div>
+      </div>
+      <input class="session-title" id="sessionTitle" spellcheck="true" />
+      <div class="top-actions">
+        <div class="lang-switch" id="uiSwitch" title="Язык интерфейса">
+          <button data-lang="ru" type="button" class="on">RU</button>
+          <button data-lang="uk" type="button">UK</button>
+        </div>
+        <span class="chip health great" id="healthChip" title=""><i class="dot" id="healthDot"></i><span id="healthLbl"></span></span>
+        <span class="chip" id="engineChip"><i class="dot" id="engineDot"></i><span id="engineLbl"></span></span>
+        <button class="btn btn-accent" id="btnShare" type="button"></button>
+        <span class="status" id="saveStatus"></span>
+        <button class="icon-btn" id="btnSettings" type="button" title="Настройки">⚙</button>
+      </div>
+    </header>
+    <div class="livebar" id="livebar">
+      <span id="liveLbl"></span>
+      <input id="liveUrl" readonly />
+      <button class="btn" id="btnCopyLive" type="button"></button>
+      <span class="live-code" id="liveCode" hidden></span>
+      <div class="people" id="people"></div>
+    </div>
+
+    <div class="workspace">
+      <aside class="side" id="side">
+        <div class="side-head">
+          <button class="btn-primary" id="btnNew" type="button"></button>
+        </div>
+        <div class="side-tabs" id="sideTabs">
+          <button type="button" data-tab="sessions" class="on" id="tabSessions">Сессии</button>
+          <button type="button" data-tab="context" id="tabContext">Контекст</button>
+          <button type="button" data-tab="glossary" id="tabGlossary">Глоссарий</button>
+        </div>
+        <div class="side-panel" data-panel="sessions" id="panelSessions">
+          <input class="search" id="search" type="search" />
+          <div class="session-list" id="sessionList"></div>
+        </div>
+        <div class="side-panel hidden" data-panel="context" id="panelContext">
+          <div class="context-box">
+            <h3 id="ctxTitle"></h3>
+            <p class="hint" id="ctxHint"></p>
+            <textarea id="notes"></textarea>
+          </div>
+        </div>
+        <div class="side-panel hidden" data-panel="glossary" id="panelGlossary">
+          <div class="gloss-box">
+            <h3 id="glossTitle"></h3>
+            <p class="hint" id="glossHint"></p>
+            <div class="gloss-add">
+              <input id="glossSrc" />
+              <input id="glossTgt" />
+              <button class="btn" id="btnGloss" type="button">+</button>
+            </div>
+            <ul class="terms" id="terms"></ul>
+          </div>
+        </div>
+      </aside>
+
+      <section class="protocol" id="protocolWrap">
+        <div class="protocol-head">
+          <div class="pane-tabs" id="paneTabs">
+            <button type="button" data-view="both" class="on" id="tabBoth"></button>
+            <button type="button" data-view="left" id="tabOrig"></button>
+            <button type="button" data-view="right" id="tabTrans"></button>
+          </div>
+          <div class="cols-head">
+            <span id="origHead">Русский</span>
+            <span class="dir">
+              <span id="srcLbl">RU</span>
+              <button class="ghost" id="btnSwap" type="button">⇄</button>
+              <span id="tgtLbl">UK</span>
+            </span>
+            <span id="transHead">Українська</span>
+          </div>
+        </div>
+        <div class="protocol-body" id="protocol"></div>
+      </section>
+    </div>
+
+    <footer class="dock">
+      <aside class="inspector" id="inspector"></aside>
+      <div class="composer">
+        <div class="row">
+          <div class="seg" id="speakerSeg" title="">
+            <button type="button" data-sp="me" class="on" id="spMe"></button>
+            <button type="button" data-sp="them" id="spThem"></button>
+          </div>
+          <span class="dir-hint" id="dirHint"></span>
+          <div class="seg dir-selects">
+            <select id="srcLang"></select>
+            <span>→</span>
+            <select id="tgtLang"></select>
+          </div>
+          <button class="btn" id="btnInspect" type="button"></button>
+        </div>
+        <textarea id="draft" rows="3" enterkeyhint="send" autocomplete="off"></textarea>
+        <div class="send-row">
+          <span class="kbd" id="shortcut"></span>
+          <span class="busy" id="busy"></span>
+          <button class="btn btn-accent" id="btnSend" type="button"></button>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <div class="toast hidden" id="toast" role="status"></div>
+  <div class="modal hidden" id="watchModal">
+    <div class="sheet watch-sheet">
+      <h2 id="watchModalTitle"></h2>
+      <p class="hint" id="watchModalHint"></p>
+      <div class="watch-code-block">
+        <span id="lblWatchCode"></span>
+        <button class="watch-code" id="watchCodeBig" type="button" title=""></button>
+      </div>
+      <div class="watch-qr-wrap">
+        <div id="watchQr"></div>
+        <span class="hint" id="lblWatchQr"></span>
+      </div>
+      <div class="field">
+        <label id="lblWatchLink"></label>
+        <input id="watchLinkInput" readonly />
+      </div>
+      <div class="field" id="watchLanField">
+        <label id="lblWatchLan"></label>
+        <input id="watchLanInput" readonly />
+      </div>
+      <p class="hint" id="watchAnyoneHint"></p>
+      <div class="sheet-actions">
+        <button class="btn" id="btnWatchPreview" type="button"></button>
+        <button class="btn" id="btnCloseWatch" type="button"></button>
+        <button class="btn-primary" id="btnCopyWatch" type="button"></button>
+      </div>
+    </div>
+  </div>
+  <div class="modal hidden" id="modal">
+    <div class="sheet">
+      <h2 id="setTitle"></h2>
+      <div class="field">
+        <label id="lblUiLang"></label>
+        <select id="uiLangSel">
+          <option value="ru" selected>Русский</option>
+          <option value="uk">Українська</option>
+        </select>
+      </div>
+      <div class="field">
+        <label id="lblTheme"></label>
+        <select id="theme">
+          <option value="paper"></option>
+          <option value="night"></option>
+        </select>
+      </div>
+      <div class="field">
+        <label id="lblKey"></label>
+        <input id="xaiKey" type="password" autocomplete="off" placeholder="xai-..." />
+        <p class="hint" id="keyHint"></p>
+      </div>
+      <div class="field">
+        <label id="lblFont"></label>
+        <input id="fontScale" type="range" min="0.9" max="1.25" step="0.05" />
+      </div>
+      <div class="row">
+        <button class="btn" id="btnExportTxt" type="button"></button>
+        <button class="btn" id="btnExportHtml" type="button"></button>
+        <button class="btn" id="btnDelSes" type="button"></button>
+      </div>
+      <div class="sheet-actions">
+        <button class="btn" id="btnCloseSet" type="button"></button>
+        <button class="btn-primary" id="btnSaveSet" type="button"></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="google.js"></script>
+  <script src="i18n.js"></script>
+  <script src="qr.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

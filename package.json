@@ -1,0 +1,11 @@
+{
+  "name": "peregovory",
+  "version": "1.0.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Робоче місце перекладача для переговорів RU ↔ UK",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
